@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# https://unix.stackexchange.com/questions/189865/secure-way-to-allow-any-user-to-run-programs-in-specific-network-namespace
+# https://unix.stackexchange.com/questions/229548/allow-regular-users-to-use-network-namespaces
+
+# To disable sudo password prompt for a user, add to /etc/sudoers:
+# user ALL=NOPASSWD: /usr/bin/netns
+#
+# or for a group:
+# %group ALL=NOPASSWD: /usr/bin/netns
+
+
+[ "$(id -u)" == "0" ] || exec sudo -- "$0" "$@"
+
+if [ -z "${SUDO_USER}" ]; then
+    echo "SUDO_USER not set"
+    exit 1
+fi
+
+NAMESPACE="$1"
+shift
+if [ -z "${NAMESPACE}" -o -z "${1}" ]; then
+    echo "usage: $(basename "$0") NAMESPACE CMD"
+    exit 1
+fi
+
+ip netns exec "${NAMESPACE}" \
+    sudo -u "#${SUDO_UID}" -g "#${SUDO_GID}" -- "$@"
